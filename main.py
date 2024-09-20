@@ -16,7 +16,6 @@ def mol_to_scad(mol_file, scad_file):
     # SCADファイルを作成
     with open(scad_file, 'w') as f:
         f.write("// Generated SCAD file from MOL\n\n")
-        f.write("$fn = 32;\n\n")
         
         # 原子を球として表現
         for atom in mol.GetAtoms():
@@ -69,4 +68,4 @@ def get_atom_radius(element):
     return radii.get(element, 0.5)  # デフォルトは0.5
 
 # 使用例
-mol_to_scad('flarene80.mol', 'output.scad')
+mol_to_scad('input.mol', 'output.scad')
