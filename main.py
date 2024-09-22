@@ -15,6 +15,15 @@ def select_mol_file():
     )
     return file_path
 
+def add_hydrogens(mol):
+    """
+    分子に明示的な水素原子を追加し、3D座標を生成します。
+    """
+    mol = Chem.AddHs(mol)
+    AllChem.EmbedMolecule(mol, randomSeed=42)
+    AllChem.MMFFOptimizeMolecule(mol)
+    return mol
+
 def mol_to_scad(mol_file, scad_file):
     # MOLファイルを読み込む
     with open(mol_file, 'r') as f:
@@ -25,12 +34,8 @@ def mol_to_scad(mol_file, scad_file):
         print(f"エラー: MOLファイル '{mol_file}' を読み込めません。ファイルが存在し、正しい形式であることを確認してください。")
         return
 
-    # 既存の3D座標がない場合は生成
-    if mol.GetNumConformers() == 0:
-        AllChem.EmbedMolecule(mol, randomSeed=42)
-    
-    # 3D座標の最適化
-    AllChem.MMFFOptimizeMolecule(mol)
+    # 水素原子を追加し、3D座標を生成または最適化
+    mol = add_hydrogens(mol)
     
     # SCADファイルを作成
     with open(scad_file, 'w') as f:
