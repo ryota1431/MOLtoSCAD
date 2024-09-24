@@ -185,20 +185,37 @@ get_atom_color.colors = {
 }
 
 def get_atom_radius(element):
-    return get_atom_radius.radii.get(element, 0.5)
+    original_radius = get_atom_radius.original_radii.get(element, 0.77)  # デフォルト値を炭素の半径に設定
+    return original_radius * get_atom_radius.normalization_factor
 
-get_atom_radius.radii = {
-    'H': 0.3,
-    'C': 0.5,
-    'N': 0.45,
-    'O': 0.4,
-    'F': 0.35,
-    'Cl': 0.6,
-    'Br': 0.7,
-    'I': 0.8,
-    'S': 0.55,
-    'P': 0.55,
+# オリジナルの半径データ 参考文献:https://qiita.com/chemweb000/items/83efb778cfdfe6d63ab4
+# 参考文献の参考文献 CrystalMakerのHP https://www.hulinks.co.jp/support/c-maker/qa_005.html
+get_atom_radius.original_radii = {
+    'H': 0.37, 'He': 0.32,
+    'Li': 1.34, 'Be': 0.90, 'B': 0.82, 'C': 0.77, 'N': 0.75, 'O': 0.73, 'F': 0.71, 'Ne': 0.69,
+    'Na': 1.54, 'Mg': 1.30, 'Al': 1.18, 'Si': 1.11, 'P': 1.06, 'S': 1.02, 'Cl': 0.99, 'Ar': 0.97,
+    'K': 1.96, 'Ca': 1.74, 'Sc': 1.44, 'Ti': 1.36, 'V': 1.25, 'Cr': 1.27, 'Mn': 1.39, 'Fe': 1.25,
+    'Co': 1.26, 'Ni': 1.21, 'Cu': 1.38, 'Zn': 1.31, 'Ga': 1.26, 'Ge': 1.22, 'As': 1.19, 'Se': 1.16,
+    'Br': 1.14, 'Kr': 1.10,
+    'Rb': 2.11, 'Sr': 1.92, 'Y': 1.62, 'Zr': 1.48, 'Nb': 1.37, 'Mo': 1.45, 'Tc': 1.56, 'Ru': 1.26,
+    'Rh': 1.35, 'Pd': 1.31, 'Ag': 1.53, 'Cd': 1.48, 'In': 1.44, 'Sn': 1.41, 'Sb': 1.38, 'Te': 1.35,
+    'I': 1.33, 'Xe': 1.30,
+    'Cs': 2.11, 'Ba': 1.92, 'Ce': 1.62, 'Pr': 1.48, 'Nd': 1.37, 'Pm': 1.45, 'Sm': 1.56, 'Eu': 1.26,
+    'Gd': 1.35, 'Tb': 1.31, 'Dy': 1.53, 'Ho': 1.48, 'Er': 1.44, 'Tm': 1.41, 'Yb': 1.38, 'Lu': 1.35,
+    'Hf': 1.33, 'Ta': 1.30, 'W': 1.30, 'Re': 1.30, 'Os': 1.30, 'Ir': 1.30, 'Pt': 1.30, 'Au': 1.30,
+    'Hg': 1.30, 'Tl': 1.30, 'Pb': 1.30, 'Bi': 1.30, 'Po': 1.30, 'At': 1.30, 'Rn': 1.30,
+    'Fr': 2.11, 'Ra': 1.92, 'Ac': 1.62, 'Pa': 1.48, 'U': 1.37, 'Np': 1.45, 'Pu': 1.56, 'Am': 1.26,
+    'Cm': 1.35, 'Bk': 1.31, 'Cf': 1.53, 'Es': 1.48, 'Fm': 1.44, 'Md': 1.41, 'No': 1.38, 'Lr': 1.35
 }
+
+# 炭素の半径
+carbon_radius = get_atom_radius.original_radii['C']
+
+# 規格化係数を計算（炭素の半径を0.5にするための係数）
+get_atom_radius.normalization_factor = 0.5 / carbon_radius
+
+# 規格化された半径を計算して新しい辞書に格納
+get_atom_radius.radii = {element: get_atom_radius(element) for element in get_atom_radius.original_radii}
 
 def open_scad_file(scad_file):
     # OpenSCADのパスを指定します。環境に合わせて変更してください。
@@ -236,19 +253,21 @@ if __name__ == "__main__":
         scad_file = f"{base_name}.scad"
         
         # MOLファイルからSCADファイルを生成
-        mol_to_scad(mol_file, scad_file)
-        print(f"SCADファイルが生成されました: {scad_file}")
-        
-        # ユーザーに開くアプリケーションを選択させる
-        root = tk.Tk()
-        root.withdraw()
-        choice = messagebox.askyesnocancel("アプリケーション選択", "生成されたSCADファイルを開きますか？\n\nYes: OpenSCADで開く\nNo: FreeCADで開く\nCancel: 開かない")
-        
-        if choice is True:
-            open_scad_file(scad_file)
-        elif choice is False:
-            open_freecad_with_scad(scad_file)
+        if mol_to_scad(mol_file, scad_file):
+            print(f"SCADファイルが生成されました: {scad_file}")
+            
+            # ユーザーに開くアプリケーションを選択させる
+            root = tk.Tk()
+            root.withdraw()
+            choice = messagebox.askyesnocancel("アプリケーション選択", "生成されたSCADファイルを開きますか？\n\nYes: OpenSCADで開く\nNo: FreeCADで開く\nCancel: 開かない")
+            
+            if choice is True:
+                open_scad_file(scad_file)
+            elif choice is False:
+                open_freecad_with_scad(scad_file)
+            else:
+                print("ファイルは生成されましたが、自動的には開きません。")
         else:
-            print("ファイルは生成されましたが、自動的には開きません。")
+            print("SCADファイルの生成に失敗しました。")
     else:
         print("ファイルが選択されませんでした。")
