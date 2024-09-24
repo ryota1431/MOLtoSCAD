@@ -117,3 +117,150 @@
 ## 貢献
 
 バグ報告や機能リクエストは、GitHubのIssueを通じてお願いします。プルリクエストも歓迎します。
+
+## プログラムの詳細な仕組み
+
+### 1. プログラムの概要
+
+このプログラムは、分子構造を表すMOLファイルを3Dプリント用のSCADファイルに変換するツールです。主な機能は以下の通りです：
+
+1. MOLファイルの選択
+2. 3D構造の生成と最適化
+3. SCADファイルの生成
+4. OpenSCADまたはFreeCADでの自動表示
+
+### 2. 主要な関数と処理の詳細
+
+#### 2.1 MOLファイルの選択
+
+```python
+def select_mol_file():
+    root = tk.Tk()
+    root.withdraw()
+    file_path = filedialog.askopenfilename(
+        title="MOLファイルを選択してください",
+        filetypes=[("MOL files", "*.mol"), ("All files", "*.*")]
+    )
+    return file_path
+```
+
+この関数は、Tkinterを使用してGUIでMOLファイルを選択するダイアログを表示します。
+
+#### 2.2 3D構造の生成と最適化
+
+```python
+def add_hydrogens(mol):
+    mol = Chem.AddHs(mol)
+    
+    # 4つの異なる方法で3D構造の生成を試みます
+    methods = [
+        (AllChem.EmbedMolecule, {"randomSeed": 42, "useRandomCoords": True}),
+        (AllChem.EmbedMolecule, {"randomSeed": 42, "useRandomCoords": True, "useBasicKnowledge": False}),
+        (AllChem.EmbedMolecule, {"randomSeed": 42, "useRandomCoords": True, "boxSizeMult": 2.0}),
+        (AllChem.EmbedMolecule, {"randomSeed": 42, "useExpTorsionAnglePrefs": True, "useBasicKnowledge": True})
+    ]
+
+    for method, params in methods:
+        result = method(mol, **params)
+        if result == 0:
+            AllChem.MMFFOptimizeMolecule(mol)
+            return mol
+
+    raise ValueError("すべての3D構造生成方法が失敗しました。")
+```
+
+この関数は、RDKitを使用して分子の3D構造を生成し最適化します。4つの異なる方法を順番に試み、成功した場合はMMFF力場で構造を最適化します。
+
+#### 2.3 SCADファイルの生成
+
+```python
+def mol_to_scad(mol_file, scad_file, max_atoms_per_file=1000):
+    # MOLファイルの読み込みと前処理
+    mol = Chem.MolFromMolFile(mol_file, removeHs=False)
+    mol = Chem.RemoveHs(mol)
+    mol = Chem.AddHs(mol)
+    mol = add_hydrogens(mol)
+
+    # SCADファイルの生成
+    atom_count = mol.GetNumAtoms()
+    file_count = (atom_count - 1) // max_atoms_per_file + 1
+
+    for file_index in range(file_count):
+        # ファイル名の設定
+        current_scad_file = f"{os.path.splitext(scad_file)[0]}_{file_index + 1}.scad" if file_count > 1 else scad_file
+
+        with open(current_scad_file, 'w') as f:
+            # SCADファイルのヘッダー部分を書き込み
+            write_scad_header(f)
+
+            # 原子と結合の情報を書き込み
+            write_atoms_and_bonds(f, mol, file_index * max_atoms_per_file, (file_index + 1) * max_atoms_per_file)
+
+    return True
+```
+
+この関数は、MOLファイルを読み込み、3D構造を生成し、SCADファイルを作成します。大きな分子の場合、複数のファイルに分割します。
+
+#### 2.4 OpenSCADまたはFreeCADでの自動表示
+
+```python
+def open_scad_file(scad_file):
+    openscad_path = r"C:\Program Files (x86)\OpenSCAD\openscad.exe"
+    try:
+        subprocess.Popen([openscad_path, scad_file])
+        print(f"OpenSCADで {scad_file} を開きました。")
+    except FileNotFoundError:
+        print("OpenSCADが見つかりません。パスを確認してください。")
+    except Exception as e:
+        print(f"エラーが発生しました: {e}")
+
+def open_freecad_with_scad(scad_file):
+    freecad_path = r"C:\Program Files\FreeCAD 0.21\bin\FreeCAD.exe"
+    try:
+        subprocess.Popen([freecad_path, scad_file])
+        print(f"FreeCADで {scad_file} を開きました。")
+    except FileNotFoundError:
+        print("FreeCADが見つかりません。パスを確認してください。")
+    except Exception as e:
+        print(f"エラーが発生しました: {e}")
+```
+
+これらの関数は、生成されたSCADファイルをOpenSCADまたはFreeCADで自動的に開きます。
+
+### 3. メイン処理の流れ
+
+```python
+if __name__ == "__main__":
+    mol_file = select_mol_file()
+    if mol_file:
+        base_name = os.path.splitext(os.path.basename(mol_file))[0]
+        scad_file = f"{base_name}.scad"
+        
+        mol_to_scad(mol_file, scad_file)
+        print(f"SCADファイルが生成されました: {scad_file}")
+        
+        # ユーザーに開くアプリケーションを選択させる
+        root = tk.Tk()
+        root.withdraw()
+        choice = messagebox.askyesnocancel("アプリケーション選択", "生成されたSCADファイルを開きますか？\n\nYes: OpenSCADで開く\nNo: FreeCADで開く\nCancel: 開かない")
+        
+        if choice is True:
+            open_scad_file(scad_file)
+        elif choice is False:
+            open_freecad_with_scad(scad_file)
+        else:
+            print("ファイルは生成されましたが、自動的には開きません。")
+    else:
+        print("ファイルが選択されませんでした。")
+```
+
+メイン処理では、MOLファイルの選択、SCADファイルの生成、そしてユーザーの選択に応じたアプリケーションでの表示を行います。
+
+### 4. 追加の注意点
+
+1. OpenSCADとFreeCADのパスは、ユーザーの環境に合わせて変更する必要があります。
+2. 大きな分子の場合、複数のSCADファイルが生成されることがあります。
+3. 3D構造の生成に失敗した場合、エラーメッセージが表示されます。
+4. このプログラムは、RDKit、Tkinter、およびsubprocessモジュールに依存しています。
+
+このプログラムを使用することで、分子構造を簡単に3Dモデル化し、3Dプリンターで出力することができます。
