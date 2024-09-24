@@ -18,10 +18,17 @@ def select_mol_file():
 def add_hydrogens(mol):
     """
     分子に明示的な水素原子を追加し、3D座標を生成します。
+    失敗した場合は例外を発生させます。
     """
     mol = Chem.AddHs(mol)
-    AllChem.EmbedMolecule(mol, randomSeed=42)
-    AllChem.MMFFOptimizeMolecule(mol)
+    result = AllChem.EmbedMolecule(mol, randomSeed=42)
+    if result == -1:
+        raise ValueError("3D構造の生成に失敗しました。")
+    try:
+        AllChem.MMFFOptimizeMolecule(mol)
+    except:
+        print("警告: MMFF最適化に失敗しました。UFF最適化を試みます。")
+        AllChem.UFFOptimizeMolecule(mol)
     return mol
 
 def mol_to_scad(mol_file, scad_file):
@@ -32,10 +39,21 @@ def mol_to_scad(mol_file, scad_file):
     
     if mol is None:
         print(f"エラー: MOLファイル '{mol_file}' を読み込めません。ファイルが存在し、正しい形式であることを確認してください。")
-        return
-
-    # 水素原子を追加し、3D座標を生成または最適化
-    mol = add_hydrogens(mol)
+        return False
+    
+    try:
+        # 水素原子を追加し、3D座標を生成または最適化
+        mol = add_hydrogens(mol)
+    except Exception as e:
+        print(f"エラー: 3D構造の生成に失敗しました: {e}")
+        return False
+    
+    # 3D座標が生成されたことを確認
+    conf = mol.GetConformer()
+    if not conf.Is3D():
+        print("エラー: 3D座標が生成されませんでした。")
+        print("SCADファイルの生成をスキップします。")
+        return False
     
     # SCADファイルを作成
     with open(scad_file, 'w') as f:
