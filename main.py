@@ -131,10 +131,7 @@ def mol_to_scad(mol_file, scad_file, max_atoms_per_file=1000):
                     pos2 = mol.GetConformer().GetAtomPosition(atom2.GetIdx())
                     
                     f.write(f"color(\"grey\") ")
-                    f.write(f"hull() {{\n")
-                    f.write(f"  translate([{pos1.x:.2f}, {pos1.y:.2f}, {pos1.z:.2f}]) sphere(r = bond_radius);\n")
-                    f.write(f"  translate([{pos2.x:.2f}, {pos2.y:.2f}, {pos2.z:.2f}]) sphere(r = bond_radius);\n")
-                    f.write(f"}}\n")
+                    f.write(f"translate([{pos1.x:.2f}, {pos1.y:.2f}, {pos1.z:.2f}]) rotate([0,acos({pos2.z-pos1.z:.2f}/norm([{pos2.x-pos1.x:.2f},{pos2.y-pos1.y:.2f},{pos2.z-pos1.z:.2f}])),atan2({pos2.y-pos1.y:.2f},{pos2.x-pos1.x:.2f})]) cylinder(h = norm([{pos2.x-pos1.x:.2f},{pos2.y-pos1.y:.2f},{pos2.z-pos1.z:.2f}]), r = bond_radius);\n")
             
             f.flush()
         finally:
