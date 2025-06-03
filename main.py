@@ -215,8 +215,20 @@ get_atom_radius.normalization_factor = 0.5 / carbon_radius
 get_atom_radius.radii = {element: get_atom_radius(element) for element in get_atom_radius.original_radii}
 
 def open_scad_file(scad_file):
-    # OpenSCADのパスを指定します。環境に合わせて変更してください。
-    openscad_path = r"C:\Program Files (x86)\OpenSCAD\openscad.exe"
+    # OSを判別してOpenSCADのパスを設定
+    if os.name == 'posix':  # macOSやLinux
+        openscad_path = r"/opt/homebrew/bin/openscad"
+    elif os.name == 'nt':  # Windows
+        openscad_path = r"C:\Program Files (x86)\OpenSCAD\openscad.exe"
+    else:
+        openscad_path = None
+
+    if not os.path.exists(openscad_path):
+        openscad_path = None
+    
+    # OpenSCADのパスが見つからない場合、ユーザーに手動入力を促す
+    if openscad_path is None:
+        openscad_path = input("OpenSCADのパスを手動で入力してください: ")
     
     # SCADファイルを開く
     try:
@@ -228,8 +240,20 @@ def open_scad_file(scad_file):
         print(f"エラーが発生しました: {e}")
 
 def open_freecad_with_scad(scad_file):
-    # FreeCADのパスを指定します。環境に合わせて変更してください。
-    freecad_path = r"C:\Program Files\FreeCAD 0.21\bin\FreeCAD.exe"
+    # OSを判別してFreeCADのパスを設定
+    if os.name == 'posix':
+        freecad_path = r"/Applications/FreeCAD.app/Contents/MacOS/FreeCAD"
+    elif os.name == 'nt':
+        freecad_path = r"C:\Program Files\FreeCAD 0.21\bin\FreeCAD.exe"
+    else:
+        freecad_path = None
+
+    if not os.path.exists(freecad_path):
+        freecad_path = None
+            
+    # FreeCADのパスが見つからない場合、ユーザーに手動入力を促す
+    if freecad_path is None:
+        freecad_path = input("FreeCADのパスを手動で入力してください: ")
     
     # FreeCADでSCADファイルを開く
     try:
