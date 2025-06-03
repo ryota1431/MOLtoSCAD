@@ -53,34 +53,26 @@
 
 1. このリポジトリをクローンまたはダウンロードします。
 
-2. 仮想環境を有効化した状態で、必要なパッケージをインストールします：
+2. 仮想環境を有効化した状態でライブラリをインストールします：
    ```
    pip install rdkit
+   pip install -e .
    ```
 
 ## OpenSCADとFreeCADのパス設定
 
 スクリプトがOpenSCADとFreeCADを正しく起動できるように、それぞれのアプリケーションのパスを設定する必要があります。
 
-1. `main.py` ファイルをテキストエディタで開きます。
+`open_scad_file` と `open_freecad_with_scad` は実行ファイルのパスを引数として指定できます。
+必要に応じて以下のように呼び出してください。
 
-2. `open_scad_file` 関数内の `openscad_path` 変数を、お使いのシステムのOpenSCADの実行ファイルのパスに変更します：
+```python
+from moltoscad import open_scad_file, open_freecad_with_scad
 
-   ```python
-   openscad_path = r"C:\Program Files\OpenSCAD\openscad.exe"  # Windowsの場合
-   # openscad_path = "/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD"  # macOSの場合
-   # openscad_path = "/usr/bin/openscad"  # Linuxの場合
-   ```
+open_scad_file("output.scad", openscad_path=r"C:\\Program Files\\OpenSCAD\\openscad.exe")
+open_freecad_with_scad("output.scad", freecad_path=r"C:\\Program Files\\FreeCAD 0.21\\bin\\FreeCAD.exe")
+```
 
-3. 同様に、`open_freecad_with_scad` 関数内の `freecad_path` 変数を、FreeCADの実行ファイルのパスに変更します：
-
-   ```python
-   freecad_path = r"C:\Program Files\FreeCAD 0.21\bin\FreeCAD.exe"  # Windowsの場合
-   # freecad_path = "/Applications/FreeCAD.app/Contents/MacOS/FreeCAD"  # macOSの場合
-   # freecad_path = "/usr/bin/freecad"  # Linuxの場合
-   ```
-
-4. 変更を保存します。
 
 ## 使用方法
 
@@ -116,6 +108,16 @@
    - ファイルを開かずに終了する
 
 8. 選択したオプションに応じて、対応するアプリケーションが起動します（OpenSCADまたはFreeCAD）。
+
+### ライブラリとして利用する
+
+`moltoscad` パッケージをインストールすると、Pythonコードから直接SCADファイルを生成できます。
+
+```python
+from moltoscad import mol_to_scad
+
+mol_to_scad("sample.mol", "sample.scad")
+```
 
 注意：
 - OpenSCADとFreeCADのパスが正しく設定されていることを確認してください。
